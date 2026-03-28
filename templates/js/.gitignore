@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+.output/
+.env
+.env.local
+*.tsbuildinfo
+coverage/
+.turbo/
