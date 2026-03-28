@@ -36,7 +36,7 @@ Arguments:
                          path to an existing directory
 
 Options:
-  --stack <python|js>   Apply language-specific overlay
+  --stack <python|js|dotnet>  Apply language-specific overlay
   --public              Create as public repository (default: private)
   --private             Create as private repository
   --clone-dir <path>    Clone destination (default: $CLONE_DIR)
@@ -48,6 +48,9 @@ Examples:
 
   # Existing directory (with or without git init)
   $(basename "$0") ./my-existing-project --stack js
+
+  # .NET project
+  $(basename "$0") my-solver --stack dotnet
 
   # Just a name — applies to \$CLONE_DIR/<name>
   $(basename "$0") my-app --stack python
@@ -111,7 +114,7 @@ done
 
 [[ -z "$TARGET" ]] && error "Repository name or path is required"
 [[ -z "$GITHUB_USER" ]] && error "Not logged in to GitHub. Run 'gh auth login' first"
-[[ -n "$STACK" && "$STACK" != "python" && "$STACK" != "js" ]] && error "Unknown stack: $STACK (use 'python' or 'js')"
+[[ -n "$STACK" && "$STACK" != "python" && "$STACK" != "js" && "$STACK" != "dotnet" ]] && error "Unknown stack: $STACK (use 'python', 'js', or 'dotnet')"
 
 # ─── Resolve target directory and repo name ──────────────────────────────────
 if [[ "$TARGET" == */* || "$TARGET" == .* ]]; then
