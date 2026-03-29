@@ -30,9 +30,6 @@ info "Repository: $REPO (${VISIBILITY})"
 
 # ─── Security features (available for public repos or with GHAS) ────────────
 if [[ "$VISIBILITY" == "PUBLIC" ]]; then
-  info "Enabling secret scanning..."
-  gh api -X PUT "repos/$REPO/secret-scanning" 2>/dev/null || true
-
   info "Enabling security settings..."
   gh api -X PATCH "repos/$REPO" \
     -f security_and_analysis[secret_scanning][status]=enabled \
@@ -40,15 +37,15 @@ if [[ "$VISIBILITY" == "PUBLIC" ]]; then
     --silent 2>/dev/null && ok "Secret scanning + push protection enabled" \
     || warn "Could not enable secret scanning (may already be enabled)"
 
-  info "Enabling Dependabot security updates..."
-  gh api -X PUT "repos/$REPO/automated-security-fixes" --silent 2>/dev/null \
-    && ok "Dependabot security updates enabled" \
-    || warn "Could not enable Dependabot security updates"
-
   info "Enabling Dependabot vulnerability alerts..."
   gh api -X PUT "repos/$REPO/vulnerability-alerts" --silent 2>/dev/null \
     && ok "Vulnerability alerts enabled" \
     || warn "Could not enable vulnerability alerts"
+
+  info "Enabling Dependabot security updates..."
+  gh api -X PUT "repos/$REPO/automated-security-fixes" --silent 2>/dev/null \
+    && ok "Dependabot security updates enabled" \
+    || ok "Dependabot security updates will activate once vulnerabilities are detected"
 else
   info "Private repo — secret scanning and Dependabot alerts via API are limited"
   info "Enabling vulnerability alerts..."
