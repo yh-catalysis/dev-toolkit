@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ─── audit-repos.sh ─────────────────────────────────────────────────────────
-# 全リポジトリのセキュリティ・設定準拠状態を監査する
+# Audit all repositories for security and configuration compliance.
 # Usage: ./bin/audit-repos.sh [--user <username>] [--public-only]
 # ─────────────────────────────────────────────────────────────────────────────
 

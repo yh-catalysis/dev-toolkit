@@ -2,13 +2,13 @@
 set -euo pipefail
 
 # ─── new-repo.sh ─────────────────────────────────────────────────────────────
-# リポジトリのセットアップ・セキュリティ設定を適用する万能スクリプト
+# All-in-one script to bootstrap and secure a GitHub repository.
 #
-# 状態を自動検出し、足りないものだけ補う:
-#   1. ディレクトリなし     → 新規作成 + テンプレ + GitHub リポ作成
-#   2. ディレクトリあり     → 不足テンプレを追加 + git init (未済なら)
-#   3. git init 済み        → 不足テンプレを追加 + GitHub リモート設定
-#   4. GitHub リモートあり  → 不足テンプレを追加 + セキュリティ設定
+# Detects the current state and fills in only what's missing:
+#   1. No directory       → create dir + apply templates + create GitHub repo
+#   2. Directory exists   → add missing templates + git init (if needed)
+#   3. Git initialized    → add missing templates + configure GitHub remote
+#   4. Remote configured  → add missing templates + apply security settings
 #
 # Usage: ./bin/new-repo.sh <repo-name|path> [--stack python|js] [--public|--private]
 # ─────────────────────────────────────────────────────────────────────────────

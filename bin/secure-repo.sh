@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ─── secure-repo.sh ─────────────────────────────────────────────────────────
-# 既存リポジトリにセキュリティ設定を一括適用する（冪等）
+# Idempotently apply security settings to an existing GitHub repository.
 # Usage: ./bin/secure-repo.sh <owner/repo> [--quiet]
 # ─────────────────────────────────────────────────────────────────────────────
 
