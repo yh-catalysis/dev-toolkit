@@ -31,7 +31,7 @@
 
 ## 構成
 
-```
+```text
 templates/
 ├── common/          # 全リポ共通（LICENSE, SECURITY.md, dependabot.yml 等）
 ├── python/          # Python 用オーバーレイ（pyproject.toml, CI 等）
