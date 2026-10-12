@@ -10,7 +10,7 @@ Opinionated shell scripts to bootstrap, secure, and audit personal GitHub reposi
 
 - **`new-repo.sh`** — Create a new repo with layered templates (common + stack overlay) and GitHub security settings, all in one command
 - **`secure-repo.sh`** — Idempotently apply security settings (secret scanning, push protection, branch protection, etc.) to any existing repo
-- **`audit-repos.sh`** — Audit all your repos for security and configuration compliance
+- **`audit-repos.sh`** — Audit your repos for security and configuration compliance (public and/or private, owned or shared with you)
 
 ### Requirements
 
@@ -33,9 +33,39 @@ cd dev-toolkit
 # Apply security settings to an existing repo
 ./bin/secure-repo.sh owner/repo-name
 
-# Audit all your public repos
-./bin/audit-repos.sh --public-only
+# Audit every repo you own (public and private)
+./bin/audit-repos.sh
 ```
+
+### Choosing which repos `audit-repos.sh` checks
+
+With no options, `audit-repos.sh` checks every repository you own, both public and private. Two options change that:
+
+| Option | Values | Default | What it means |
+| --- | --- | --- | --- |
+| `--visibility` | `all`, `public`, `private` | `all` | Include public repos, private repos, or both |
+| `--affiliation` | `owner`, `collaborator`, `organization_member` (comma-separated), or `all` | `owner` | Your relationship to the repo (GitHub calls this "affiliation") |
+
+The `--affiliation` values:
+
+- `owner` — repos under your own account
+- `collaborator` — someone else's repos that you were invited to
+- `organization_member` — repos of an organization you belong to
+
+```bash
+# Only your public repos (same as --visibility public)
+./bin/audit-repos.sh --public-only
+
+# Private repos you own or were invited to
+./bin/audit-repos.sh --visibility private --affiliation owner,collaborator
+
+# Every repo you can access
+./bin/audit-repos.sh --affiliation all
+```
+
+Some checks need admin access to the repo: Dependabot alerts, Dependabot security updates, and the security features of public repos. GitHub hides these settings from people who are not admins, so on such repos (usually `collaborator` and `organization_member` ones) these checks are shown as "not checked" instead of as warnings.
+
+`--user <username>` audits another account instead of yours. GitHub lists only the public repos that account owns, so `--user` cannot be combined with `--visibility private` / `all` or with an `--affiliation` other than `owner`.
 
 ### Template Structure
 
@@ -76,7 +106,7 @@ Placeholders in templates are replaced automatically:
 
 - **`new-repo.sh`** — レイヤード テンプレート（共通 + スタック別オーバーレイ）の適用と GitHub セキュリティ設定をワンコマンドで実行
 - **`secure-repo.sh`** — 既存リポジトリにセキュリティ設定を冪等に適用（secret scanning, push protection, ブランチ保護など）
-- **`audit-repos.sh`** — 全リポジトリのセキュリティ・設定準拠状態を監査
+- **`audit-repos.sh`** — リポジトリのセキュリティ・設定準拠状態を監査（公開・非公開や、自分の所有か招待されたものかを選べる）
 
 ### 動作要件
 
@@ -99,9 +129,39 @@ cd dev-toolkit
 # 既存リポジトリにセキュリティ設定を適用
 ./bin/secure-repo.sh owner/repo-name
 
-# 公開リポジトリのみ監査
-./bin/audit-repos.sh --public-only
+# 自分が所有するリポジトリを、公開・非公開とも監査
+./bin/audit-repos.sh
 ```
+
+### `audit-repos.sh` の監査対象の選び方
+
+オプションを付けないと、自分が所有するリポジトリを、公開・非公開の区別なくすべて監査します。対象は次の2つのオプションで変えられます。
+
+| オプション | 値 | 既定 | 意味 |
+| --- | --- | --- | --- |
+| `--visibility` | `all` / `public` / `private` | `all` | 公開リポジトリと非公開リポジトリのどちらを含めるか |
+| `--affiliation` | `owner` / `collaborator` / `organization_member`（カンマ区切り）、または `all` | `owner` | 自分とリポジトリの関係（GitHub の用語で affiliation） |
+
+`--affiliation` の値の意味:
+
+- `owner` — 自分のアカウントにあるリポジトリ
+- `collaborator` — 他人のリポジトリのうち、自分が招待されたもの
+- `organization_member` — 自分が所属する Organization のリポジトリ
+
+```bash
+# 公開リポジトリだけ（--visibility public と同じ）
+./bin/audit-repos.sh --public-only
+
+# 自分が所有する、または招待された非公開リポジトリ
+./bin/audit-repos.sh --visibility private --affiliation owner,collaborator
+
+# アクセスできるリポジトリすべて
+./bin/audit-repos.sh --affiliation all
+```
+
+一部の確認には、リポジトリの admin 権限が要ります（Dependabot alerts、Dependabot security updates、公開リポジトリのセキュリティ機能）。GitHub はこれらの設定を admin 以外には見せません。そのため admin でないリポジトリ（多くは `collaborator` と `organization_member` のもの）では、警告にせず「not checked」と表示します。
+
+`--user <ユーザー名>` を付けると、自分ではなく別のアカウントを監査します。GitHub が返すのはそのアカウントが所有する公開リポジトリだけなので、`--user` は `--visibility private` / `all` や、`owner` 以外の `--affiliation` とは一緒に使えません。
 
 ### テンプレート構成
 

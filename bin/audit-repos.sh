@@ -2,31 +2,99 @@
 set -euo pipefail
 
 # ─── audit-repos.sh ─────────────────────────────────────────────────────────
-# Audit all repositories for security and configuration compliance.
-# Usage: ./bin/audit-repos.sh [--user <username>] [--public-only]
+# Audit repositories for security and configuration compliance.
+# Usage: ./bin/audit-repos.sh [--visibility all|public|private] [--affiliation <list>]
+#                             [--public-only] [--user <username>]
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ─── Defaults ────────────────────────────────────────────────────────────────
 USER=""
-PUBLIC_ONLY=false
+VIS_FILTER="all"       # --visibility
+AFF_FILTER="owner"     # --affiliation
+VIS_GIVEN=false
+AFF_GIVEN=false
 ISSUES_FOUND=0
+
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
+
+Choose which repositories to audit:
+  --visibility <all|public|private>
+                        Public repos, private repos, or both (default: all)
+  --affiliation <list>  Your relationship to the repo, comma-separated (default: owner)
+                          owner                You own the repo
+                          collaborator         Someone else's repo you were invited to
+                          organization_member  A repo of an organization you belong to
+                          all                  All of the above
+  --public-only         Same as --visibility public
+  --user <username>     Audit another account instead of yourself. GitHub lists only
+                        the public repos that account owns, so this cannot be combined
+                        with --visibility private|all or --affiliation other than owner.
+  -h, --help            Show this help
+
+Some checks need admin access to the repo (Dependabot alerts, Dependabot security
+updates, security features). They are skipped where you are not an admin, which is
+usually the case for collaborator and organization_member repos.
+
+Examples:
+  # Every repo you own, public and private
+  $(basename "$0")
+
+  # Only your public repos
+  $(basename "$0") --public-only
+
+  # Private repos you own or were invited to
+  $(basename "$0") --visibility private --affiliation owner,collaborator
+EOF
+  exit 0
+}
+
+die() { echo "$1" >&2; exit 1; }
+need_value() { [[ $# -ge 2 && -n "$2" ]] || die "$1 needs a value (see --help)"; }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --user)        USER="$2"; shift 2 ;;
-    --public-only) PUBLIC_ONLY=true; shift ;;
-    -h|--help)
-      echo "Usage: $(basename "$0") [--user <username>] [--public-only]"
-      exit 0 ;;
-    *) echo "Unknown option: $1" >&2; exit 1 ;;
+    --user)        need_value "$@"; USER="$2"; shift 2 ;;
+    --visibility)  need_value "$@"; VIS_FILTER="$2"; VIS_GIVEN=true; shift 2 ;;
+    --affiliation) need_value "$@"; AFF_FILTER="$2"; AFF_GIVEN=true; shift 2 ;;
+    --public-only) VIS_FILTER="public"; VIS_GIVEN=true; shift ;;
+    -h|--help)     usage ;;
+    *) die "Unknown option: $1 (see --help)" ;;
   esac
 done
 
-[[ -z "$USER" ]] && USER="$(gh api user --jq '.login' 2>/dev/null)"
-[[ -z "$USER" ]] && { echo "Could not determine GitHub user. Use --user <username>" >&2; exit 1; }
+case "$VIS_FILTER" in
+  all|public|private) ;;
+  *) die "--visibility must be all, public, or private (got: $VIS_FILTER)" ;;
+esac
+
+[[ "$AFF_FILTER" == "all" ]] && AFF_FILTER="owner,collaborator,organization_member"
+IFS=',' read -ra AFF_VALUES <<< "$AFF_FILTER"
+[[ ${#AFF_VALUES[@]} -gt 0 ]] || die "--affiliation needs at least one value (see --help)"
+for AFF in "${AFF_VALUES[@]}"; do
+  case "$AFF" in
+    owner|collaborator|organization_member) ;;
+    *) die "--affiliation accepts owner, collaborator, organization_member, or all (got: $AFF)" ;;
+  esac
+done
+
+ME="$(gh api user --jq '.login' 2>/dev/null || true)"
+[[ -z "$ME" ]] && die "Could not determine your GitHub account. Run: gh auth login"
+[[ -z "$USER" ]] && USER="$ME"
+
+OTHER_ACCOUNT=false
+if [[ "${USER,,}" != "${ME,,}" ]]; then
+  OTHER_ACCOUNT=true
+  if { $VIS_GIVEN && [[ "$VIS_FILTER" != "public" ]]; } || { $AFF_GIVEN && [[ "$AFF_FILTER" != "owner" ]]; }; then
+    die "For another account (--user $USER), GitHub lists only the public repos it owns. Drop --visibility / --affiliation, or use --public-only."
+  fi
+fi
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 warn_item() { printf '    \033[1;33m⚠\033[0m  %s\n' "$1"; ISSUES_FOUND=$((ISSUES_FOUND + 1)); }
 ok_item()   { printf '    \033[1;32m✓\033[0m  %s\n' "$1"; }
+skip_item() { printf '    \033[2m-  %s\033[0m\n' "$1"; }
 header()    { printf '\n\033[1;36m━━ %s\033[0m\n' "$1"; }
 
 # Succeed if any of the given paths exists in the repo (stops at the first hit).
@@ -39,24 +107,32 @@ has_any_file() {
 }
 
 # ─── Fetch repos ─────────────────────────────────────────────────────────────
-QUERY='.[] | [.full_name, .visibility, .license.spdx_id // "NONE", .default_branch, (.has_wiki|tostring)] | @tsv'
-REPOS="$(gh api "users/$USER/repos?per_page=100&type=owner&sort=updated" --paginate --jq "$QUERY" 2>/dev/null)"
-
-if $PUBLIC_ONLY; then
-  REPOS="$(echo "$REPOS" | grep -P '\tpublic\t' || true)"
+QUERY='.[] | [.full_name, .visibility, .license.spdx_id // "NONE", .default_branch, (.has_wiki|tostring), (.permissions.admin // false | tostring), (.archived|tostring)] | @tsv'
+if $OTHER_ACCOUNT; then
+  # /users/{user}/repos returns public repos only, even to an authenticated caller
+  SCOPE="public repos owned by $USER"
+  REPOS="$(gh api "users/$USER/repos?per_page=100&type=owner&sort=updated" --paginate --jq "$QUERY" 2>/dev/null)"
+else
+  # /user/repos also returns private repos, filtered by visibility and affiliation
+  SCOPE="visibility=$VIS_FILTER, affiliation=$AFF_FILTER"
+  REPOS="$(gh api "user/repos?per_page=100&visibility=$VIS_FILTER&affiliation=$AFF_FILTER&sort=updated" --paginate --jq "$QUERY" 2>/dev/null)"
 fi
 
-[[ -z "$REPOS" ]] && { echo "No repositories found for $USER"; exit 0; }
+[[ -z "$REPOS" ]] && { echo "No repositories found ($SCOPE)"; exit 0; }
 
 TOTAL=0
 echo ""
 printf '\033[1m🔍 Repository Audit for %s\033[0m\n' "$USER"
+printf '   Scope: %s\n' "$SCOPE"
 printf '   Date: %s\n' "$(date -Iseconds)"
 
 # ─── Check each repo ────────────────────────────────────────────────────────
-while IFS=$'\t' read -r FULL_NAME VISIBILITY LICENSE DEFAULT_BRANCH HAS_WIKI; do
+while IFS=$'\t' read -r FULL_NAME VISIBILITY LICENSE DEFAULT_BRANCH HAS_WIKI IS_ADMIN ARCHIVED; do
   TOTAL=$((TOTAL + 1))
-  header "$FULL_NAME ($VISIBILITY)"
+  NOTES="$VISIBILITY"
+  [[ "$ARCHIVED" == "true" ]] && NOTES+=", archived"
+  [[ "$IS_ADMIN" == "true" ]] || NOTES+=", not admin"
+  header "$FULL_NAME ($NOTES)"
 
   # License
   if [[ "$VISIBILITY" == "public" ]]; then
@@ -73,8 +149,10 @@ while IFS=$'\t' read -r FULL_NAME VISIBILITY LICENSE DEFAULT_BRANCH HAS_WIKI; do
       && ok_item "SECURITY.md present" \
       || { [[ "$VISIBILITY" == "public" ]] && warn_item "No SECURITY.md" || true; }
 
-  # Security features (public repos)
-  if [[ "$VISIBILITY" == "public" ]]; then
+  # Security features (public repos). The API shows them to admins only.
+  if [[ "$VISIBILITY" == "public" && "$IS_ADMIN" != "true" ]]; then
+    skip_item "Security features: not checked (needs admin access)"
+  elif [[ "$VISIBILITY" == "public" ]]; then
     SEC="$(gh api "repos/$FULL_NAME" --jq '.security_and_analysis' 2>/dev/null || echo '{}')"
     if echo "$SEC" | grep -q '"status":"enabled"' 2>/dev/null; then
       SS="$(echo "$SEC" | python3 -c "import sys,json; d=json.load(sys.stdin) or {}; print(d.get('secret_scanning',{}).get('status','?'))" 2>/dev/null || echo '?')"
@@ -104,13 +182,20 @@ while IFS=$'\t' read -r FULL_NAME VISIBILITY LICENSE DEFAULT_BRANCH HAS_WIKI; do
     warn_item "No dependency update tool (Dependabot/Renovate) configured"
   fi
 
-  # Dependabot alerts (Renovate's vulnerabilityAlerts opens security PRs from them)
-  gh api "repos/$FULL_NAME/vulnerability-alerts" --silent 2>/dev/null \
-    && ok_item "Dependabot alerts enabled" \
-    || warn_item "Dependabot alerts disabled"
+  # Dependabot alerts (Renovate's vulnerabilityAlerts opens security PRs from them).
+  # Non-admins get 404 here even when alerts are enabled, so don't guess.
+  if [[ "$IS_ADMIN" != "true" ]]; then
+    skip_item "Dependabot alerts: not checked (needs admin access)"
+  else
+    gh api "repos/$FULL_NAME/vulnerability-alerts" --silent 2>/dev/null \
+      && ok_item "Dependabot alerts enabled" \
+      || warn_item "Dependabot alerts disabled"
+  fi
 
-  # Dependabot security updates duplicate Renovate's security PRs
-  if $HAS_RENOVATE; then
+  # Dependabot security updates duplicate Renovate's security PRs (admin-only API, too)
+  if $HAS_RENOVATE && [[ "$IS_ADMIN" != "true" ]]; then
+    skip_item "Dependabot security updates: not checked (needs admin access)"
+  elif $HAS_RENOVATE; then
     DSU="$(gh api "repos/$FULL_NAME/automated-security-fixes" --jq '.enabled' 2>/dev/null || true)"
     [[ "$DSU" == "true" ]] \
       && warn_item "Dependabot security updates enabled alongside Renovate (duplicate security PRs)" \
