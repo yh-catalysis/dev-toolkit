@@ -1,35 +1,46 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
+  "description": [
+    "templates/common/renovate.json と同じ方針。違いは github-actions の ignoreTests だけ",
+    "packageRules は後勝ち（同じ項目を設定する複数のルールが一致したら、後のルールが前を上書きする）。all-non-major は必ず先頭に置く。後ろに置くと、後続のグループの groupName と automerge を minor / patch で全部上書きする",
+    "schedule と updateNotScheduled: false の組で、通常の更新は土曜にだけ PR を作り・作り直す。schedule だけでは、開いている PR の作り直しは止まらない",
+    "脆弱性の PR は vulnerabilityAlerts の schedule: [] により、曜日に関係なく即時に出る",
+    "検証: npx --yes --package renovate renovate-config-validator"
   ],
-  "timezone": "UTC",
-  "schedule": [
-    "on saturday"
-  ],
-  "vulnerabilityAlerts": {
-    "enabled": true,
-    "labels": [
-      "security"
-    ],
-    "schedule": [
-      "at any time"
-    ]
-  },
+  "extends": ["config:best-practices"],
+  "osvVulnerabilityAlerts": true,
+  "timezone": "Asia/Tokyo",
+  "schedule": ["on saturday"],
+  "updateNotScheduled": false,
+  "labels": ["dependencies"],
   "packageRules": [
     {
-      "groupName": "github-actions",
-      "matchManagers": [
-        "github-actions"
-      ]
+      "description": "【フォールバック】minor / patch / digest を1本にまとめる。★先頭から動かさない★",
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "all-non-major",
+      "groupSlug": "all-non-major"
     },
     {
-      "groupName": "python dependencies",
-      "matchManagers": [
-        "pep621",
-        "uv"
+      "description": [
+        "【自動マージ】GitHub Actions の minor / patch / digest。major は除く",
+        "このリポジトリのワークフローは templates/ 配下にしか無く、CI のステータスチェックが付かない。Renovate はチェックが無いと自動マージしないので ignoreTests にする。上がるのはテンプレートが参照する Actions の版だけ"
       ],
-      "rangeStrategy": "widen"
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "digest", "pinDigest"],
+      "groupName": "github-actions",
+      "groupSlug": "gha",
+      "automerge": true,
+      "ignoreTests": true
     }
-  ]
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on saturday"]
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "groupName": null,
+    "schedule": [],
+    "labels": ["security"]
+  }
 }

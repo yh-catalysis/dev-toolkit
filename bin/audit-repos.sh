@@ -29,6 +29,15 @@ warn_item() { printf '    \033[1;33m⚠\033[0m  %s\n' "$1"; ISSUES_FOUND=$((ISSU
 ok_item()   { printf '    \033[1;32m✓\033[0m  %s\n' "$1"; }
 header()    { printf '\n\033[1;36m━━ %s\033[0m\n' "$1"; }
 
+# Succeed if any of the given paths exists in the repo (stops at the first hit).
+has_any_file() {
+  local repo="$1" path; shift
+  for path in "$@"; do
+    gh api "repos/$repo/contents/$path" --silent 2>/dev/null && return 0
+  done
+  return 1
+}
+
 # ─── Fetch repos ─────────────────────────────────────────────────────────────
 QUERY='.[] | [.full_name, .visibility, .license.spdx_id // "NONE", .default_branch, (.has_wiki|tostring)] | @tsv'
 REPOS="$(gh api "users/$USER/repos?per_page=100&type=owner&sort=updated" --paginate --jq "$QUERY" 2>/dev/null)"
@@ -77,19 +86,35 @@ while IFS=$'\t' read -r FULL_NAME VISIBILITY LICENSE DEFAULT_BRANCH HAS_WIKI; do
     fi
   fi
 
-  # Dependabot or Renovate
+  # Dependabot or Renovate (not both: they open duplicate update PRs)
   HAS_DEPBOT=false
-  gh api "repos/$FULL_NAME/contents/.github/dependabot.yml" --silent 2>/dev/null && HAS_DEPBOT=true
-  gh api "repos/$FULL_NAME/contents/.github/dependabot.yaml" --silent 2>/dev/null && HAS_DEPBOT=true
+  has_any_file "$FULL_NAME" .github/dependabot.yml .github/dependabot.yaml && HAS_DEPBOT=true
 
   HAS_RENOVATE=false
-  gh api "repos/$FULL_NAME/contents/renovate.json" --silent 2>/dev/null && HAS_RENOVATE=true
-  gh api "repos/$FULL_NAME/contents/.renovaterc.json" --silent 2>/dev/null && HAS_RENOVATE=true
+  has_any_file "$FULL_NAME" renovate.json renovate.json5 .github/renovate.json .github/renovate.json5 \
+    .renovaterc .renovaterc.json .renovaterc.json5 && HAS_RENOVATE=true
 
-  if $HAS_DEPBOT || $HAS_RENOVATE; then
-    ok_item "Dependency updates: $(${HAS_DEPBOT} && echo 'Dependabot')$(${HAS_DEPBOT} && ${HAS_RENOVATE} && echo ' + ')$(${HAS_RENOVATE} && echo 'Renovate')"
+  if $HAS_DEPBOT && $HAS_RENOVATE; then
+    warn_item "Both dependabot.yml and Renovate are configured (duplicate update PRs)"
+  elif $HAS_DEPBOT; then
+    ok_item "Dependency updates: Dependabot"
+  elif $HAS_RENOVATE; then
+    ok_item "Dependency updates: Renovate"
   else
     warn_item "No dependency update tool (Dependabot/Renovate) configured"
+  fi
+
+  # Dependabot alerts (Renovate's vulnerabilityAlerts opens security PRs from them)
+  gh api "repos/$FULL_NAME/vulnerability-alerts" --silent 2>/dev/null \
+    && ok_item "Dependabot alerts enabled" \
+    || warn_item "Dependabot alerts disabled"
+
+  # Dependabot security updates duplicate Renovate's security PRs
+  if $HAS_RENOVATE; then
+    DSU="$(gh api "repos/$FULL_NAME/automated-security-fixes" --jq '.enabled' 2>/dev/null || true)"
+    [[ "$DSU" == "true" ]] \
+      && warn_item "Dependabot security updates enabled alongside Renovate (duplicate security PRs)" \
+      || ok_item "Dependabot security updates disabled (Renovate opens security PRs)"
   fi
 
   # GitHub Actions SHA pinning check

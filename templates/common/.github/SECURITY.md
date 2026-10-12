@@ -17,5 +17,5 @@ Only the latest release is supported with security updates.
 ## Security Practices
 
 - All CI/CD actions are pinned by commit SHA
-- Dependabot is enabled for dependency updates
+- Dependencies are kept up to date by Renovate; security fixes are opened immediately from Dependabot alerts
 - Secret scanning and push protection are enabled
