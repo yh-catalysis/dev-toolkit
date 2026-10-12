@@ -39,12 +39,13 @@ cd dev-toolkit
 
 ### Choosing which repos `audit-repos.sh` checks
 
-With no options, `audit-repos.sh` checks every repository you own, both public and private. Two options change that:
+With no options, `audit-repos.sh` checks every repository you own, both public and private, except archived ones. These options change that:
 
 | Option | Values | Default | What it means |
 | --- | --- | --- | --- |
 | `--visibility` | `all`, `public`, `private` | `all` | Include public repos, private repos, or both |
 | `--affiliation` | `owner`, `collaborator`, `organization_member` (comma-separated), or `all` | `owner` | Your relationship to the repo (GitHub calls this "affiliation") |
+| `--include-archived` | — | off | Also check archived repos. They are skipped by default: archived repos are read-only, so their warnings cannot be acted on |
 
 The `--affiliation` values:
 
@@ -135,12 +136,13 @@ cd dev-toolkit
 
 ### `audit-repos.sh` の監査対象の選び方
 
-オプションを付けないと、自分が所有するリポジトリを、公開・非公開の区別なくすべて監査します。対象は次の2つのオプションで変えられます。
+オプションを付けないと、自分が所有するリポジトリを、公開・非公開の区別なくすべて監査します（アーカイブ済みは除く）。対象は次のオプションで変えられます。
 
 | オプション | 値 | 既定 | 意味 |
 | --- | --- | --- | --- |
 | `--visibility` | `all` / `public` / `private` | `all` | 公開リポジトリと非公開リポジトリのどちらを含めるか |
 | `--affiliation` | `owner` / `collaborator` / `organization_member`（カンマ区切り）、または `all` | `owner` | 自分とリポジトリの関係（GitHub の用語で affiliation） |
+| `--include-archived` | — | 付けない | アーカイブ済みのリポジトリも監査する。アーカイブ済みは読み取り専用で、警告が出ても直せないので、既定では飛ばす |
 
 `--affiliation` の値の意味:
 

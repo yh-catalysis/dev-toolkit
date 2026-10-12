@@ -4,7 +4,7 @@ set -euo pipefail
 # ─── audit-repos.sh ─────────────────────────────────────────────────────────
 # Audit repositories for security and configuration compliance.
 # Usage: ./bin/audit-repos.sh [--visibility all|public|private] [--affiliation <list>]
-#                             [--public-only] [--user <username>]
+#                             [--include-archived] [--public-only] [--user <username>]
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ─── Defaults ────────────────────────────────────────────────────────────────
@@ -13,6 +13,7 @@ VIS_FILTER="all"       # --visibility
 AFF_FILTER="owner"     # --affiliation
 VIS_GIVEN=false
 AFF_GIVEN=false
+INCLUDE_ARCHIVED=false
 ISSUES_FOUND=0
 
 usage() {
@@ -27,6 +28,8 @@ Choose which repositories to audit:
                           collaborator         Someone else's repo you were invited to
                           organization_member  A repo of an organization you belong to
                           all                  All of the above
+  --include-archived    Also audit archived repos (skipped by default: they are
+                        read-only, so their warnings cannot be acted on)
   --public-only         Same as --visibility public
   --user <username>     Audit another account instead of yourself. GitHub lists only
                         the public repos that account owns, so this cannot be combined
@@ -59,6 +62,7 @@ while [[ $# -gt 0 ]]; do
     --visibility)  need_value "$@"; VIS_FILTER="$2"; VIS_GIVEN=true; shift 2 ;;
     --affiliation) need_value "$@"; AFF_FILTER="$2"; AFF_GIVEN=true; shift 2 ;;
     --public-only) VIS_FILTER="public"; VIS_GIVEN=true; shift ;;
+    --include-archived) INCLUDE_ARCHIVED=true; shift ;;
     -h|--help)     usage ;;
     *) die "Unknown option: $1 (see --help)" ;;
   esac
@@ -118,7 +122,19 @@ else
   REPOS="$(gh api "user/repos?per_page=100&visibility=$VIS_FILTER&affiliation=$AFF_FILTER&sort=updated" --paginate --jq "$QUERY" 2>/dev/null)"
 fi
 
-[[ -z "$REPOS" ]] && { echo "No repositories found ($SCOPE)"; exit 0; }
+# Archived repos are read-only, so their warnings cannot be acted on
+ARCHIVED_SKIPPED=0
+if $INCLUDE_ARCHIVED; then
+  SCOPE+=", archived included"
+else
+  SCOPE+=", archived excluded"
+  ARCHIVED_SKIPPED="$(awk -F'\t' '$7 == "true" { n++ } END { print n + 0 }' <<< "$REPOS")"
+  REPOS="$(awk -F'\t' '$7 != "true"' <<< "$REPOS")"
+fi
+ARCHIVED_NOTE=""
+[[ "$ARCHIVED_SKIPPED" -gt 0 ]] && ARCHIVED_NOTE="Archived repos skipped: $ARCHIVED_SKIPPED (add --include-archived to audit them)"
+
+[[ -z "$REPOS" ]] && { echo "No repositories found ($SCOPE)"; [[ -n "$ARCHIVED_NOTE" ]] && echo "$ARCHIVED_NOTE"; exit 0; }
 
 TOTAL=0
 echo ""
@@ -246,6 +262,7 @@ done <<< "$REPOS"
 echo ""
 printf '\033[1m━━ Summary ━━\033[0m\n'
 echo "   Repositories checked: $TOTAL"
+[[ -n "$ARCHIVED_NOTE" ]] && echo "   $ARCHIVED_NOTE"
 if [[ $ISSUES_FOUND -eq 0 ]]; then
   printf '   \033[1;32m✓ No issues found\033[0m\n'
 else
