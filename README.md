@@ -41,7 +41,7 @@ cd dev-toolkit
 
 ```text
 templates/
-├── common/          # Shared across all repos (LICENSE, SECURITY.md, dependabot.yml, etc.)
+├── common/          # Shared across all repos (LICENSE, SECURITY.md, renovate.json, etc.)
 ├── python/          # Python overlay (pyproject.toml, CI, smoke test, etc.)
 ├── js/              # JS/TS overlay (CI, etc.)
 └── dotnet/          # .NET overlay (CI, etc.)
@@ -60,6 +60,7 @@ Placeholders in templates are replaced automatically:
 - **No auto-commit or auto-push** — The script only writes files locally and generates a `POST_SETUP.md` checklist. You decide when to commit and push.
 - **All GitHub Actions pinned by commit SHA** — Prevents tag-based supply chain attacks (e.g., force-push tag hijacking).
 - **Layered templates over GitHub Template Repos** — One set of common files + per-stack overlays, easier to maintain than N template repos.
+- **Renovate for dependency updates, Dependabot for alerts only** — Running both opens duplicate PRs. Dependabot alerts stay on because Renovate's `vulnerabilityAlerts` reads them to open security PRs; `dependabot.yml` and Dependabot security updates are not used.
 
 ### License
 
@@ -106,7 +107,7 @@ cd dev-toolkit
 
 ```text
 templates/
-├── common/          # 全リポ共通（LICENSE, SECURITY.md, dependabot.yml 等）
+├── common/          # 全リポ共通（LICENSE, SECURITY.md, renovate.json 等）
 ├── python/          # Python 用オーバーレイ（pyproject.toml, CI, スモークテスト等）
 ├── js/              # JS/TS 用オーバーレイ（CI 等）
 └── dotnet/          # .NET 用オーバーレイ（CI 等）
@@ -125,6 +126,7 @@ templates/
 - **自動コミット・プッシュをしない** — ファイルのローカル配置と `POST_SETUP.md` チェックリストの生成のみ。コミットとプッシュのタイミングはユーザーが決める。
 - **全 GitHub Actions をコミット SHA で固定** — タグの force-push によるサプライチェーン攻撃を防止。
 - **GitHub Template Repos ではなくレイヤードテンプレート** — 共通テンプレート + スタック別オーバーレイの構成で、N 個のテンプレートリポジトリを管理するより保守が容易。
+- **依存更新は Renovate、Dependabot はアラートだけ** — 両方で更新すると PR が二重に出る。Renovate の `vulnerabilityAlerts` は Dependabot alerts を読んで脆弱性の PR を作るので、alerts は有効のままにする。`dependabot.yml` と Dependabot security updates は使わない。
 
 ### ライセンス
 

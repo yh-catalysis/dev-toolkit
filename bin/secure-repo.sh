@@ -29,6 +29,9 @@ VISIBILITY="$(gh repo view "$REPO" --json visibility --jq '.visibility' 2>/dev/n
 info "Repository: $REPO (${VISIBILITY})"
 
 # ─── Security features (available for public repos or with GHAS) ────────────
+# Dependabot alerts stay on: Renovate's vulnerabilityAlerts reads them to open
+# security PRs. Dependabot security updates are deliberately left off, since
+# they would open the same PRs a second time.
 if [[ "$VISIBILITY" == "PUBLIC" ]]; then
   info "Enabling security settings..."
   gh api -X PATCH "repos/$REPO" \
@@ -41,11 +44,6 @@ if [[ "$VISIBILITY" == "PUBLIC" ]]; then
   gh api -X PUT "repos/$REPO/vulnerability-alerts" --silent 2>/dev/null \
     && ok "Vulnerability alerts enabled" \
     || warn "Could not enable vulnerability alerts"
-
-  info "Enabling Dependabot security updates..."
-  gh api -X PUT "repos/$REPO/automated-security-fixes" --silent 2>/dev/null \
-    && ok "Dependabot security updates enabled" \
-    || ok "Dependabot security updates will activate once vulnerabilities are detected"
 else
   info "Private repo — secret scanning and Dependabot alerts via API are limited"
   info "Enabling vulnerability alerts..."
