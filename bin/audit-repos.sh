@@ -117,6 +117,28 @@ while IFS=$'\t' read -r FULL_NAME VISIBILITY LICENSE DEFAULT_BRANCH HAS_WIKI; do
       || ok_item "Dependabot security updates disabled (Renovate opens security PRs)"
   fi
 
+  # Dependency graph job: for some lockfiles (e.g. uv.lock) Dependabot resolves the
+  # dependencies in Actions ("Dependency Graph", dynamic/dependabot/update-graph).
+  # While it keeps failing, the graph keeps the last successful result, so alerts go
+  # stale. A known cause is a requires-python lower bound with a patch version newer
+  # than Dependabot's Python (tool_version_not_supported).
+  GRAPH_WF="$(gh api "repos/$FULL_NAME/actions/workflows" --paginate \
+    --jq '.workflows[] | select(.path == "dynamic/dependabot/update-graph") | .id' 2>/dev/null || true)"
+  if [[ -n "$GRAPH_WF" ]]; then
+    GRAPH_RUNS="$(gh api "repos/$FULL_NAME/actions/workflows/$GRAPH_WF/runs?status=completed&per_page=20" \
+      --jq '[.workflow_runs[] | .conclusion] as $c
+            | ($c | map(. == "failure") | index(false) // length) as $n
+            | ([.workflow_runs[] | select(.conclusion == "success")][0].created_at) as $ok
+            | [$n, (if $ok then $ok[:10] else "none in the last 20 runs" end)]
+            | @tsv' 2>/dev/null || true)"
+    IFS=$'\t' read -r GRAPH_FAILS GRAPH_LAST_OK <<< "$GRAPH_RUNS"
+    if [[ "${GRAPH_FAILS:-0}" -gt 0 ]]; then
+      warn_item "Dependency graph job failing ($GRAPH_FAILS run(s) in a row, last success: $GRAPH_LAST_OK); check the 'Dependency Graph' runs in Actions"
+    elif [[ -n "$GRAPH_RUNS" ]]; then
+      ok_item "Dependency graph job succeeding"
+    fi
+  fi
+
   # GitHub Actions SHA pinning check
   WORKFLOWS="$(gh api "repos/$FULL_NAME/contents/.github/workflows" --jq '.[].name' 2>/dev/null || true)"
   if [[ -n "$WORKFLOWS" ]]; then
