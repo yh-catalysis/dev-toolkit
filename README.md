@@ -73,9 +73,9 @@ Some checks need admin access to the repo: Dependabot alerts, Dependabot securit
 ```text
 templates/
 ├── common/          # Shared across all repos (LICENSE, SECURITY.md, renovate.json, etc.)
-├── python/          # Python overlay (pyproject.toml, CI, smoke test, etc.)
-├── js/              # JS/TS overlay (CI, etc.)
-└── dotnet/          # .NET overlay (CI, etc.)
+├── python/          # Python overlay (pyproject.toml, .python-version, CI, smoke test, etc.)
+├── js/              # JS/TS overlay (.node-version, CI, etc.)
+└── dotnet/          # .NET overlay (global.json, CI, etc.)
 ```
 
 Placeholders in templates are replaced automatically:
@@ -92,6 +92,7 @@ Placeholders in templates are replaced automatically:
 - **All GitHub Actions pinned by commit SHA** — Prevents tag-based supply chain attacks (e.g., force-push tag hijacking).
 - **Layered templates over GitHub Template Repos** — One set of common files + per-stack overlays, easier to maintain than N template repos.
 - **Renovate for dependency updates, Dependabot for alerts only** — Running both opens duplicate PRs. Dependabot alerts stay on because Renovate's `vulnerabilityAlerts` reads them to open security PRs; `dependabot.yml` and Dependabot security updates are not used.
+- **Exact versions in each ecosystem's standard file, bumped by Renovate** — Templates pin Node.js in `.node-version`, Python in `.python-version`, and the .NET SDK in `global.json`, and CI reads these files instead of repeating the version in workflows. The files are not tied to any one version manager, and Renovate opens the update PRs. A range such as `24` does not move to new patches on its own either; it only lets local and CI end up on different ones. `mise.toml` is only for tools that have no standard file (e.g. Terraform).
 
 ### License
 
@@ -170,9 +171,9 @@ cd dev-toolkit
 ```text
 templates/
 ├── common/          # 全リポ共通（LICENSE, SECURITY.md, renovate.json 等）
-├── python/          # Python 用オーバーレイ（pyproject.toml, CI, スモークテスト等）
-├── js/              # JS/TS 用オーバーレイ（CI 等）
-└── dotnet/          # .NET 用オーバーレイ（CI 等）
+├── python/          # Python 用オーバーレイ（pyproject.toml, .python-version, CI, スモークテスト等）
+├── js/              # JS/TS 用オーバーレイ（.node-version, CI 等）
+└── dotnet/          # .NET 用オーバーレイ（global.json, CI 等）
 ```
 
 テンプレート内のプレースホルダは自動置換されます:
@@ -189,6 +190,7 @@ templates/
 - **全 GitHub Actions をコミット SHA で固定** — タグの force-push によるサプライチェーン攻撃を防止。
 - **GitHub Template Repos ではなくレイヤードテンプレート** — 共通テンプレート + スタック別オーバーレイの構成で、N 個のテンプレートリポジトリを管理するより保守が容易。
 - **依存更新は Renovate、Dependabot はアラートだけ** — 両方で更新すると PR が二重に出る。Renovate の `vulnerabilityAlerts` は Dependabot alerts を読んで脆弱性の PR を作るので、alerts は有効のままにする。`dependabot.yml` と Dependabot security updates は使わない。
+- **版は各エコシステム標準のファイルで完全固定し、Renovate が上げる** — テンプレートは Node.js を `.node-version`、Python を `.python-version`、.NET SDK を `global.json` で固定し、CI はワークフローに版を書かずにこれらのファイルを読む。特定のバージョン管理ツールに縛られず、更新の PR は Renovate が出す。`24` のような範囲指定にしても、新しいパッチに勝手に上がるわけではなく、手元と CI で版がずれるだけ。`mise.toml` は標準のファイルが無いツール（Terraform など）にだけ使う。
 
 ### ライセンス
 

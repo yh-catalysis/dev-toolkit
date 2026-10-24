@@ -234,6 +234,12 @@ if [[ ${#ADDED_FILES[@]} -gt 0 ]] && [[ ! -f "$POST_SETUP" ]]; then
       echo "- [ ] Run \`uv run ruff check .\` and \`uv run ruff format --check .\`"
       echo "- [ ] Edit \`tests/test_smoke.py\` or add real tests, then run \`uv run pytest\`"
     fi
+    if [[ "$STACK" == "js" ]]; then
+      echo "- [ ] Run \`pnpm init\`, then make the pnpm version in \`package.json\` exact (\`^11.1.2\` → \`11.1.2\`). CI installs that version"
+    fi
+    if [[ "$STACK" == "dotnet" ]]; then
+      echo "- [ ] Create the project with \`dotnet new\` (needs the SDK version in \`global.json\`)"
+    fi
     echo "- [ ] Write a meaningful README.md"
     echo ""
     echo "## Commit & push"
