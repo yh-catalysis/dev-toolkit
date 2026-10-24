@@ -3,12 +3,11 @@ name = "{{PROJECT_NAME}}"
 version = "0.1.0"
 description = ""
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 license = "MIT"
 dependencies = []
 
 [tool.ruff]
-target-version = "py312"
 line-length = 120
 
 [tool.ruff.lint]
