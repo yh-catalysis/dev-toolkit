@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": [
-    "templates/common/renovate.json と同じ方針。違いは github-actions の ignoreTests だけ",
+    "templates/common/renovate.json と同じ方針。違いは github-actions の ignoreTests と、テンプレートの pyproject.toml の rangeStrategy だけ",
     "packageRules は後勝ち（同じ項目を設定する複数のルールが一致したら、後のルールが前を上書きする）。all-non-major は必ず先頭に置く。後ろに置くと、後続のグループの groupName と automerge を minor / patch で全部上書きする",
     "schedule と updateNotScheduled: false の組で、通常の更新は土曜にだけ PR を作り・作り直す。schedule だけでは、開いている PR の作り直しは止まらない",
     "脆弱性の PR は vulnerabilityAlerts の schedule: [] により、曜日に関係なく即時に出る",
@@ -19,6 +19,12 @@
       "matchUpdateTypes": ["minor", "patch", "digest"],
       "groupName": "all-non-major",
       "groupSlug": "all-non-major"
+    },
+    {
+      "description": "【テンプレート】pyproject.toml の下限（requires-python、ruff、pytest）も上げる。新しいリポジトリがその時点の版で始まるように",
+      "matchManagers": ["pep621"],
+      "matchFileNames": ["templates/**"],
+      "rangeStrategy": "bump"
     },
     {
       "description": [
