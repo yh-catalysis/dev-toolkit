@@ -98,10 +98,9 @@ ln -s "$PWD/skills/renovate-triage" ~/.claude/skills/renovate-triage
 
 | Skill | What it does |
 | --- | --- |
-| `renovate-triage` | Matches open Dependabot alerts to Renovate PRs, puts the PRs in order, and reports what needs your decision. It merges only when you ask for that in your request or the repository's instructions allow it |
+| `renovate-triage` | Matches open Dependabot alerts to Renovate PRs, puts the PRs in merge order, and reports which ones are ready and what needs your decision |
 
-- If a personal skill and a project skill have the same name, the personal one runs. These skills have their own names so they don't hide a repository's skill, and `renovate-triage` hands over to a repository's own Renovate skill when it finds one.
-- Personal skills don't load in Cowork or cloud sessions.
+Personal skills don't load in Cowork or cloud sessions.
 
 ### Design Decisions
 
@@ -213,10 +212,9 @@ ln -s "$PWD/skills/renovate-triage" ~/.claude/skills/renovate-triage
 
 | skill | できること |
 | --- | --- |
-| `renovate-triage` | 開いている Dependabot alerts を Renovate の PR と突き合わせ、PR の順番を決め、判断が要るものを報告する。マージするのは、依頼でマージまで頼まれたときと、リポジトリの指示が許可しているときだけ |
+| `renovate-triage` | 開いている Dependabot alerts を Renovate の PR と突き合わせ、マージの順番と、マージできる状態か、判断が要るものを報告する |
 
-- 個人の skill とプロジェクトの skill が同じ名前だと、個人のものが動きます。リポジトリの skill を隠さないよう、ここの skill には別の名前を付けています。`renovate-triage` は、リポジトリ専用の Renovate の skill があればそちらに譲ります。
-- 個人の skill は、Cowork やクラウドのセッションでは読み込まれません。
+個人の skill は、Cowork やクラウドのセッションでは読み込まれません。
 
 ### 設計方針
 
