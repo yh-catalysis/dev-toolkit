@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": [
-    "templates/common/renovate.json と同じ方針。違いは github-actions の ignoreTests と、テンプレートの pyproject.toml の rangeStrategy だけ",
+    "templates/common/renovate.json と同じ方針。違いは github-actions の ignoreTests と、templates/python/pyproject.toml の2つのルールだけ",
     "packageRules は後勝ち（同じ項目を設定する複数のルールが一致したら、後のルールが前を上書きする）。all-non-major は必ず先頭に置く。後ろに置くと、後続のグループの groupName と automerge を minor / patch で全部上書きする",
     "schedule と updateNotScheduled: false の組で、通常の更新は土曜にだけ PR を作り・作り直す。schedule だけでは、開いている PR の作り直しは止まらない",
     "脆弱性の PR は vulnerabilityAlerts の schedule: [] により、曜日に関係なく即時に出る",
@@ -21,10 +21,23 @@
       "groupSlug": "all-non-major"
     },
     {
-      "description": "【テンプレート】pyproject.toml の下限（requires-python、ruff、pytest）も上げる。新しいリポジトリがその時点の版で始まるように",
-      "matchManagers": ["pep621"],
-      "matchFileNames": ["templates/**"],
+      "description": [
+        "【テンプレート】ruff と pytest の下限も上げる。新しいリポジトリがその時点の版で始まるように",
+        "matchManagers では絞らない。uv.lock の無いこのファイルは poetry マネージャが読み、pep621 は依存を返さない"
+      ],
+      "matchFileNames": ["templates/python/pyproject.toml"],
       "rangeStrategy": "bump"
+    },
+    {
+      "description": [
+        "【テンプレート】requires-python は上げない。実行する版は .python-version が決める",
+        "Dependabot の依存グラフのジョブは requires-python を見て、手持ちの Python で満たせないと tool_version_not_supported で落ちる。Renovate は下限を最新のパッチまで上げるので、手持ちを追い越しやすい",
+        "Dependabot が新しい minor に対応したら、>=3.15 のように minor までの下限で手で上げる",
+        "poetry が読む間は抽出されないが、uv.lock を置くと pep621 が読むので、明示して止めておく"
+      ],
+      "matchFileNames": ["templates/python/pyproject.toml"],
+      "matchDepTypes": ["requires-python"],
+      "enabled": false
     },
     {
       "description": [
