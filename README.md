@@ -109,6 +109,7 @@ Personal skills don't load in Cowork or cloud sessions.
 - **Layered templates over GitHub Template Repos** — One set of common files + per-stack overlays, easier to maintain than N template repos.
 - **Renovate for dependency updates, Dependabot for alerts only** — Running both opens duplicate PRs. Dependabot alerts stay on because Renovate's `vulnerabilityAlerts` reads them to open security PRs; `dependabot.yml` and Dependabot security updates are not used.
 - **Exact versions in each ecosystem's standard file, bumped by Renovate** — Templates pin Node.js in `.node-version`, Python in `.python-version`, and the .NET SDK in `global.json`, and CI reads these files instead of repeating the version in workflows. The files are not tied to any one version manager, and Renovate opens the update PRs. A range such as `24` does not move to new patches on its own either; it only lets local and CI end up on different ones. `mise.toml` is only for tools that have no standard file (e.g. Terraform).
+- **Templates show what you would pick for a new repo today** — Runtimes stay on the newest supported release (the newest LTS where there is one), so a new repo starts with as much support left as possible. Renovate keeps moving them here and in generated repos, because neither `renovate.json` caps a version. Add a cap only when you have a reason to stay behind.
 
 ### License
 
@@ -223,6 +224,7 @@ ln -s "$PWD/skills/renovate-triage" ~/.claude/skills/renovate-triage
 - **GitHub Template Repos ではなくレイヤードテンプレート** — 共通テンプレート + スタック別オーバーレイの構成で、N 個のテンプレートリポジトリを管理するより保守が容易。
 - **依存更新は Renovate、Dependabot はアラートだけ** — 両方で更新すると PR が二重に出る。Renovate の `vulnerabilityAlerts` は Dependabot alerts を読んで脆弱性の PR を作るので、alerts は有効のままにする。`dependabot.yml` と Dependabot security updates は使わない。
 - **版は各エコシステム標準のファイルで完全固定し、Renovate が上げる** — テンプレートは Node.js を `.node-version`、Python を `.python-version`、.NET SDK を `global.json` で固定し、CI はワークフローに版を書かずにこれらのファイルを読む。特定のバージョン管理ツールに縛られず、更新の PR は Renovate が出す。`24` のような範囲指定にしても、新しいパッチに勝手に上がるわけではなく、手元と CI で版がずれるだけ。`mise.toml` は標準のファイルが無いツール（Terraform など）にだけ使う。
+- **テンプレートは「今新しく作るならこれ」を保つ** — ランタイムは最新のサポート版（LTS があるものは最新の LTS）を使い、新しいリポジトリができるだけ長いサポート期間で始まるようにする。どちらの `renovate.json` にも版の上限が無いので、ここでも生成したリポジトリでも Renovate が上げ続ける。上限は、古い版に留まる理由があるときだけ書く。
 
 ### ライセンス
 
