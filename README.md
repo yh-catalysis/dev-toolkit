@@ -11,6 +11,7 @@ Opinionated shell scripts to bootstrap, secure, and audit personal GitHub reposi
 - **`new-repo.sh`** — Create a new repo with layered templates (common + stack overlay) and GitHub security settings, all in one command
 - **`secure-repo.sh`** — Idempotently apply security settings (secret scanning, push protection, branch protection, etc.) to any existing repo
 - **`audit-repos.sh`** — Audit your repos for security and configuration compliance (public and/or private, owned or shared with you)
+- **`skills/`** — [Claude Code](https://code.claude.com/docs/en/skills) skills that work in any repository
 
 ### Requirements
 
@@ -86,6 +87,21 @@ Placeholders in templates are replaced automatically:
 | `{{YEAR}}` | Current year |
 | `{{GITHUB_USER}}` | GitHub username |
 
+### Claude Code Skills
+
+`skills/` holds [Claude Code skills](https://code.claude.com/docs/en/skills) that work in any repository. Link a skill into your personal skills folder to use it in all your projects on that machine. Pulling this repo updates the skill.
+
+```bash
+mkdir -p ~/.claude/skills
+ln -s "$PWD/skills/renovate-triage" ~/.claude/skills/renovate-triage
+```
+
+| Skill | What it does |
+| --- | --- |
+| `renovate-triage` | Matches open Dependabot alerts to Renovate PRs, puts the PRs in merge order, and reports which ones are ready and what needs your decision |
+
+Personal skills don't load in Cowork or cloud sessions.
+
 ### Design Decisions
 
 - **No auto-commit or auto-push** — The script only writes files locally and generates a `POST_SETUP.md` checklist. You decide when to commit and push.
@@ -109,6 +125,7 @@ Placeholders in templates are replaced automatically:
 - **`new-repo.sh`** — レイヤード テンプレート（共通 + スタック別オーバーレイ）の適用と GitHub セキュリティ設定をワンコマンドで実行
 - **`secure-repo.sh`** — 既存リポジトリにセキュリティ設定を冪等に適用（secret scanning, push protection, ブランチ保護など）
 - **`audit-repos.sh`** — リポジトリのセキュリティ・設定準拠状態を監査（公開・非公開や、自分の所有か招待されたものかを選べる）
+- **`skills/`** — どのリポジトリでも使える [Claude Code](https://code.claude.com/docs/en/skills) の skill
 
 ### 動作要件
 
@@ -183,6 +200,21 @@ templates/
 | `{{PROJECT_NAME}}` | リポジトリ名 |
 | `{{YEAR}}` | 作成年 |
 | `{{GITHUB_USER}}` | GitHub ユーザー名 |
+
+### Claude Code の skill
+
+`skills/` には、どのリポジトリでも使える [Claude Code の skill](https://code.claude.com/docs/en/skills) を置いています。個人の skill のフォルダにリンクを張ると、そのマシンの全プロジェクトで使えます。このリポジトリを pull すれば skill も更新されます。
+
+```bash
+mkdir -p ~/.claude/skills
+ln -s "$PWD/skills/renovate-triage" ~/.claude/skills/renovate-triage
+```
+
+| skill | できること |
+| --- | --- |
+| `renovate-triage` | 開いている Dependabot alerts を Renovate の PR と突き合わせ、マージの順番と、マージできる状態か、判断が要るものを報告する |
+
+個人の skill は、Cowork やクラウドのセッションでは読み込まれません。
 
 ### 設計方針
 
