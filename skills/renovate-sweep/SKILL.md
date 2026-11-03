@@ -49,7 +49,7 @@ done
 gh api "repos/$repo/dependabot/alerts?state=open&per_page=100" --paginate \
   --jq '.[] | [.number, .dependency.package.name, .security_advisory.severity, (.security_vulnerability.first_patched_version.identifier // "修正版なし")] | @tsv'
 gh pr list -R "$repo" --author "app/renovate" --state open \
-  --json number,title,headRefName,labels,mergeable,createdAt,author,body
+  --json number,title,headRefName,headRefOid,labels,mergeable,createdAt,author,body
 gh pr checks <番号> -R "$repo" --json name,bucket
 ```
 
@@ -112,11 +112,16 @@ gh api "repos/$repo/contents/.claude/skills" --jq '.[].name'
 リポジトリは、開いている alert の深刻度が高いものから順に回す。リポジトリの中の順番は `renovate-triage` の 3 に従う。同時に複数をマージしない。
 
 ```bash
-gh pr merge <番号> -R "$repo" --merge
+gh pr merge <番号> -R "$repo" <マージの方法> --match-head-commit <確かめた headRefOid>
 ```
 
+- **`--match-head-commit` を必ず付ける。** 確かめた後に Renovate が作り直していたら、マージされずに失敗する。その PR は 3 から確かめ直す
+- **マージの方法は、そのリポジトリのこれまでの入れ方に合わせる。** 下のコマンドで既定のブランチの履歴を見る。親が2つなら `--merge`、親が1つで件名の末尾に `(#番号)` があれば `--squash`。どちらとも言えないときは `--merge`。許されていない方法（`gh repo view "$repo" --json mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed`）は使わない
 - `--admin` と `--auto` は使わない。必須のレビューなどで拒否されたら、回避せずに報告に回す
-- マージコミットを許していないリポジトリ（`gh repo view "$repo" --json mergeCommitAllowed`）では、許されている方法（`--squash` か `--rebase`）を使う
+
+```bash
+gh api "repos/$repo/commits?per_page=10" --jq '.[] | [(.parents | length), (.commit.message | split("\n")[0])] | @tsv'
+```
 
 マージしたら、次へ進む前に確かめる。
 
