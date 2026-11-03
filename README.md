@@ -104,11 +104,13 @@ Placeholders in templates are replaced automatically:
 ```bash
 mkdir -p ~/.claude/skills
 ln -s "$PWD/skills/renovate-triage" ~/.claude/skills/renovate-triage
+ln -s "$PWD/skills/renovate-sweep" ~/.claude/skills/renovate-sweep
 ```
 
-| Skill | What it does |
-| --- | --- |
-| `renovate-triage` | Matches open Dependabot alerts to Renovate PRs, puts the PRs in merge order, and reports which ones are ready and what needs your decision |
+| Skill | What it does | Where to start Claude Code |
+| --- | --- | --- |
+| `renovate-triage` | Matches open Dependabot alerts to Renovate PRs, puts the PRs in merge order, and reports which ones are ready and what needs your decision | Inside the repository |
+| `renovate-sweep` | Goes through every repository that uses Renovate, merges the PRs that meet its conditions one by one, and reports the rest with reasons. Say "report only" to skip the merges. It follows `renovate-triage`, so link both | The directory that holds your clones, outside any repository, so that a `gh` command without `-R` fails instead of touching the wrong repository |
 
 Personal skills don't load in Cowork or cloud sessions.
 
@@ -229,11 +231,13 @@ templates/
 ```bash
 mkdir -p ~/.claude/skills
 ln -s "$PWD/skills/renovate-triage" ~/.claude/skills/renovate-triage
+ln -s "$PWD/skills/renovate-sweep" ~/.claude/skills/renovate-sweep
 ```
 
-| skill | できること |
-| --- | --- |
-| `renovate-triage` | 開いている Dependabot alerts を Renovate の PR と突き合わせ、マージの順番と、マージできる状態か、判断が要るものを報告する |
+| skill | できること | Claude Code を起動する場所 |
+| --- | --- | --- |
+| `renovate-triage` | 開いている Dependabot alerts を Renovate の PR と突き合わせ、マージの順番と、マージできる状態か、判断が要るものを報告する | そのリポジトリの中 |
+| `renovate-sweep` | Renovate を使っているリポジトリを横断し、条件を満たす PR を1本ずつマージして、残りを理由つきで報告する。「報告だけ」と頼めばマージしない。`renovate-triage` の手順に従うので、両方のリンクを張る | クローンをまとめた親ディレクトリ。リポジトリの外なら、`-R` を忘れた `gh` が失敗するので、別のリポジトリを操作せずに済む |
 
 個人の skill は、Cowork やクラウドのセッションでは読み込まれません。
 
