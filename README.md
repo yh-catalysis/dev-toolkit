@@ -38,6 +38,16 @@ cd dev-toolkit
 ./bin/audit-repos.sh
 ```
 
+### What `new-repo.sh` creates
+
+| Where | What happens |
+| --- | --- |
+| Local directory | `~/projects/github/personal/<repo-name>`. Change the parent directory with `--clone-dir` or `DEV_TOOLKIT_CLONE_DIR`. An argument that contains `/` or starts with `.` is used as the path itself |
+| GitHub | Creates `<your-account>/<repo-name>` if it does not exist (private unless you pass `--public`), sets its SSH URL as `origin`, runs `secure-repo.sh`, and turns off Wiki and Projects. The owner is always the account `gh` is logged in to, so the script cannot create a repo under an organization |
+| Commits | None. The GitHub repo stays empty until you push. `POST_SETUP.md` lists the steps |
+
+You can run the same command again: existing files are left as they are, and only what is missing is added.
+
 ### Choosing which repos `audit-repos.sh` checks
 
 With no options, `audit-repos.sh` checks every repository you own, both public and private, except archived ones. These options change that:
@@ -104,7 +114,7 @@ Personal skills don't load in Cowork or cloud sessions.
 
 ### Design Decisions
 
-- **No auto-commit or auto-push** — The script only writes files locally and generates a `POST_SETUP.md` checklist. You decide when to commit and push.
+- **No auto-commit or auto-push** — The script creates the GitHub repo, but your files stay local: it writes them and generates a `POST_SETUP.md` checklist. You decide when to commit and push.
 - **All GitHub Actions pinned by commit SHA** — Prevents tag-based supply chain attacks (e.g., force-push tag hijacking).
 - **Layered templates over GitHub Template Repos** — One set of common files + per-stack overlays, easier to maintain than N template repos.
 - **Renovate for dependency updates, Dependabot for alerts only** — Running both opens duplicate PRs. Dependabot alerts stay on because Renovate's `vulnerabilityAlerts` reads them to open security PRs; `dependabot.yml` and Dependabot security updates are not used.
@@ -152,6 +162,16 @@ cd dev-toolkit
 # 自分が所有するリポジトリを、公開・非公開とも監査
 ./bin/audit-repos.sh
 ```
+
+### `new-repo.sh` が作るもの
+
+| 場所 | 動作 |
+| --- | --- |
+| ローカルのディレクトリ | `~/projects/github/personal/<リポジトリ名>`。親ディレクトリは `--clone-dir` か環境変数 `DEV_TOOLKIT_CLONE_DIR` で変えられる。引数に `/` を含むか `.` で始まるときは、そのパスをそのまま使う |
+| GitHub | `<自分のアカウント>/<リポジトリ名>` が無ければ作る（`--public` を付けなければ非公開）。`origin` に SSH の URL を設定し、`secure-repo.sh` を実行して、Wiki と Projects を無効にする。所有者は常に `gh` でログイン中のアカウントで、Organization の下には作れない |
+| コミット | しない。プッシュするまで GitHub のリポジトリは空のまま。手順は `POST_SETUP.md` に書かれる |
+
+同じコマンドは再度実行できる。既存のファイルはそのままで、足りないものだけを追加する。
 
 ### `audit-repos.sh` の監査対象の選び方
 
@@ -219,7 +239,7 @@ ln -s "$PWD/skills/renovate-triage" ~/.claude/skills/renovate-triage
 
 ### 設計方針
 
-- **自動コミット・プッシュをしない** — ファイルのローカル配置と `POST_SETUP.md` チェックリストの生成のみ。コミットとプッシュのタイミングはユーザーが決める。
+- **自動コミット・プッシュをしない** — GitHub のリポジトリは作るが、ファイルはローカルに置き、`POST_SETUP.md` チェックリストを生成するところまで。コミットとプッシュのタイミングはユーザーが決める。
 - **全 GitHub Actions をコミット SHA で固定** — タグの force-push によるサプライチェーン攻撃を防止。
 - **GitHub Template Repos ではなくレイヤードテンプレート** — 共通テンプレート + スタック別オーバーレイの構成で、N 個のテンプレートリポジトリを管理するより保守が容易。
 - **依存更新は Renovate、Dependabot はアラートだけ** — 両方で更新すると PR が二重に出る。Renovate の `vulnerabilityAlerts` は Dependabot alerts を読んで脆弱性の PR を作るので、alerts は有効のままにする。`dependabot.yml` と Dependabot security updates は使わない。
