@@ -4,6 +4,9 @@
     "packageRules は後勝ち（同じ項目を設定する複数のルールが一致したら、後のルールが前を上書きする）。all-non-major は必ず先頭に置く。後ろに置くと、後続のグループの groupName と automerge を minor / patch で全部上書きする",
     "schedule と updateNotScheduled: false の組で、通常の更新は土曜にだけ PR を作り・作り直す。schedule だけでは、開いている PR の作り直しは止まらない",
     "スケジュール外では自動マージも起きない。土曜の終日にしているのは、PR の作成から CI を経て自動マージまでが枠に収まるようにするため",
+    "ロックファイル保守を before 6am on saturday に絞っているのは、枠が広いほど PR の作り直しが増え、非公開リポジトリでは CI が GitHub Actions の枠（Free プランは月2,000分）を消費するため。公開リポジトリは Actions の枠を消費しないので、on saturday にしてよい",
+    "非公開リポジトリで枠内に PR が作られなかった週は、Dependency Dashboard のチェックボックスで作らせる。続くようなら、CI の費用と比べて枠を広げるかを判断する",
+    "lockFileMaintenance の schedule は消さない。消すと既定の before 4am on monday になる",
     "脆弱性の PR は vulnerabilityAlerts の schedule: [] により、曜日に関係なく即時に出る",
     "検証: npx --yes --package renovate renovate-config-validator"
   ],
